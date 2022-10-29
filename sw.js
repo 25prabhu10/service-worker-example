@@ -17,40 +17,10 @@ const cacheAssets = [
   "https://fonts.gstatic.com/s/inconsolata/v31/QlddNThLqRwH-OJ1UHjlKENVzkWGVkL3GZQmAwLyya15.woff2",
 ];
 
-const addResourcesToCache = async (resources) => {
+const preCache = async (resources) => {
   const cache = await caches.open(cacheName);
   await cache.addAll(resources);
 };
-
-// cache assets
-self.addEventListener("install", (event) => {
-  event.waitUntil(addResourcesToCache(cacheAssets));
-  console.log("service worker installed");
-});
-
-const deleteOldCaches = async () => {
-  const cacheKeepList = [cacheName];
-  const cachesToDelete = keyList.filter((key) => !cacheKeepList.includes(key));
-
-  await Promise.all(cachesToDelete.map(deleteCache));
-};
-
-// do clean up (remove old caches)
-self.addEventListener("activate", (event) => {
-  event.waitUntil(deleteOldCaches());
-});
-
-// service worker navigation preload
-const enableNavigationPreload = async () => {
-  if (self.registration.navigationPreload) {
-    // enable navigation preloads!
-    await self.registration.navigationPreload.enable();
-  }
-};
-
-self.addEventListener("activate", (event) => {
-  event.waitUntil(enableNavigationPreload());
-});
 
 const putInCache = async (request, response) => {
   const cache = await caches.open(cacheName);
@@ -60,8 +30,14 @@ const putInCache = async (request, response) => {
 // check in cache if not found fetch over network
 const cacheFirst = async ({ request, preloadResponsePromise, fallbackUrl }) => {
   // first try to get the resource from the cache
+
   const responseFromCache = await caches.match(request);
   // cache.match(event.request, { ignoreSearch: true }))
+
+  if (request.url === "http://localhost:5500/index.html") {
+    console.log(request);
+  }
+
   if (responseFromCache) {
     // we found an entry in the cache!
     return responseFromCache;
@@ -78,7 +54,6 @@ const cacheFirst = async ({ request, preloadResponsePromise, fallbackUrl }) => {
 
   try {
     // next try to get the resource from the network
-
     const responseFromNetwork = await fetch(request);
 
     // response may be used only once
@@ -103,15 +78,50 @@ const cacheFirst = async ({ request, preloadResponsePromise, fallbackUrl }) => {
   }
 };
 
+const enableNavigationPreload = async () => {
+  if (self.registration.navigationPreload) {
+    // enable navigation preloads!
+    await self.registration.navigationPreload.enable();
+  }
+};
+
+// service worker navigation preload
+self.addEventListener("activate", (event) => {
+  event.waitUntil(enableNavigationPreload());
+});
+
+// cache assets
+self.addEventListener("install", (event) => {
+  event.waitUntil(preCache(cacheAssets));
+});
+
 // listen for a fetch event to provide the user a cached resource
 // the next time a page from our site is accessed
 self.addEventListener("fetch", (event) => {
   event.respondWith(
     cacheFirst({
       request: event.request,
-      fallbackUrl: "/gallery/myLittleVader.jpg",
+      preloadResponsePromise: event.preloadResponse,
+      fallbackUrl: "https://via.placeholder.com/150",
     })
   );
+});
 
-  console.log("service worker fetching");
+const deleteOldCaches = async () => {
+  // list of caches to keep
+  const cacheKeepList = [cacheName];
+  const keyList = await caches.keys();
+
+  const cachesToDelete = keyList.filter((key) => !cacheKeepList.includes(key));
+
+  await Promise.all(
+    cachesToDelete.map(async (key) => {
+      await caches.delete(key);
+    })
+  );
+};
+
+// do clean up (remove old caches)
+self.addEventListener("activate", (event) => {
+  event.waitUntil(deleteOldCaches());
 });
