@@ -27,3 +27,15 @@ self.addEventListener("install", (event) => {
   event.waitUntil(addResourcesToCache(cacheAssets));
   console.log("service worker installed");
 });
+
+const deleteOldCaches = async () => {
+  const cacheKeepList = [cacheName];
+  const cachesToDelete = keyList.filter((key) => !cacheKeepList.includes(key));
+
+  await Promise.all(cachesToDelete.map(deleteCache));
+};
+
+// do clean up (remove old caches)
+self.addEventListener("activate", (event) => {
+  event.waitUntil(deleteOldCaches());
+});
