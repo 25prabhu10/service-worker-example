@@ -1,0 +1,8 @@
+{
+  "short_name": "ServiceWorker",
+  "name": "Service Worker Example",
+  "description": "Leaning about Service Worker",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone"
+}
