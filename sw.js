@@ -39,3 +39,15 @@ const deleteOldCaches = async () => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(deleteOldCaches());
 });
+
+// service worker navigation preload
+const enableNavigationPreload = async () => {
+  if (self.registration.navigationPreload) {
+    // enable navigation preloads!
+    await self.registration.navigationPreload.enable();
+  }
+};
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(enableNavigationPreload());
+});
